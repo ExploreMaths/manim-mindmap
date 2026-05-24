@@ -10,8 +10,14 @@ license = "MIT"
 
 requires-python = ">=3.12"
 dependencies = [
-    
+    "manim>=0.18.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/jj-math/manim-mindmap"
+Repository = "https://github.com/jj-math/manim-mindmap"
+Documentation = "https://github.com/jj-math/manim-mindmap#readme"
+"Bug Tracker" = "https://github.com/jj-math/manim-mindmap/issues"
 
 [tool.poetry]
 packages = [{include = "manim_mindmap", from = "src"}]
