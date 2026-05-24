@@ -1,5 +1,5 @@
 from manim import *
-from CustomTool.ManimObject.mindmap import *
+from manim_mindmap import *
 
 class Scene_Name(MovingCameraScene):
     def construct(self):
