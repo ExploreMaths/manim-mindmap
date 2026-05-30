@@ -3,54 +3,106 @@ from manim_mindmap import *
 
 class Scene_Name(MovingCameraScene):
     def construct(self):
-        node_style = NodeStyle(direction=DOWN)
-        root = Node(Tex(r'圆周率').to_edge(UP))
-        A = Node(Tex(r'圆的面积'))
-        B = Node(Tex(r'圆的周长'))
-        C = Node(Tex(r'球的\\体积'))
+        self.camera.frame.set_width(25).move_to(RIGHT)
+        root = Node(Tex('球体积').to_edge(LEFT))
 
-        D = Node(Tex(r'圆的面积公式'))
-        E = Node(Tex(r'圆的周长公式'))
+        A1 = Node(Tex('公元前3世纪'))
+        A2 = Node(Tex('公元3世纪'))
+        A3 = Node(Tex('公元5世纪'))
+        A4 = Node(Tex('公元17世纪'))
+        A5 = Node(Tex('公元18世纪'))
 
-        F = Node(Tex(r'球的表面积'))
+        for A in [A1, A2, A3, A4, A5]:
+            root.add_child(A)
 
-        root.add_child(A)
-        root.add_child(B)
-        root.add_child(C)
+        A11 = Node(Tex('阿基米德平衡法'))
+        A1.add_child(A11)
 
-        B.add_child(F)
+        A21 = Node(Tex('《九章算术》'))
+        A22 = Node(Tex('刘徽：牟合方盖'))
+        A2.add_child(A21)
+        A2.add_child(A22)
 
-        C.add_child(D)
-        C.add_child(E)
-        
+        # 首次创建
         self.play(
-            LayoutAnimation(self,root,node_style)
+            LayoutAnimation(self,root)
+        )
+
+        A221 = Node(Tex('球与牟合方盖的关系'))
+        A222 = Node(Tex('牟合方盖体积？'))
+        A22.add_child(A221)
+        A22.add_child(A222)
+        # 插入节点
+        self.play(
+            LayoutAnimation(self,root)
         )
         self.wait()
 
-        G = Node(Tex(r'正方形'))
-        H = Node(Tex(r'长方形'))
-
-        C.add_child(G)
-        F.add_child(H)
-
+        A31 = Node(Tex('祖暅：开立圆术'))
+        A32 = Node(Tex('祖冲之：球体积'))
+        A3.add_child(A31)
+        A3.add_child(A32)
+        # 插入节点
         self.play(
-            LayoutAnimation(self,root,node_style)
+            LayoutAnimation(self,root)
         )
         self.wait()
 
-        F.scale(1.5)
+        A41 = Node(Tex('开普勒'))
+        A42 = Node(Tex('卡瓦列里原理'))
+        A4.add_child(A41)
+        A4.add_child(A42)
 
+        A51 = Node(Tex('松永良弼：会玉术'))
+        A5.add_child(A51)
+        # 插入节点
         self.play(
-            LayoutAnimation(self,root,node_style)
+            LayoutAnimation(self,root)
         )
         self.wait()
 
-        C.remove_child(G)
-        root.remove_child(C)
-        
+        # 放缩节点
+        A31.scale(1.5)
+        A51.scale(0.8)
         self.play(
-            LayoutAnimation(self,root,node_style)
+            LayoutAnimation(self,root)
+        )
+        self.wait()
+
+        # 修改节点内容
+        root.alter_content(Tex(r'球\\体\\积',color = RED,font_size = 60))
+        self.play(
+            LayoutAnimation(self,root)
+        )
+        self.wait()
+
+        # 修改节点、连线样式
+        node_style = NodeStyle(
+            node_style=[
+                {'color':RED,'stroke_width':20,'stroke_opacity':0.5},
+                {'color':YELLOW,'stroke_width':12,'stroke_opacity':0.5},
+                {'color':BLUE,'stroke_width':6,'stroke_opacity':0.5},
+                {'color':GREEN,'stroke_width':3,'stroke_opacity':0.5},
+            ],
+            line_style=[
+                {'color':RED,'stroke_width':20,'stroke_opacity':0.5},
+                {'color':YELLOW,'stroke_width':12,'stroke_opacity':0.5},
+                {'color':BLUE,'stroke_width':6,'stroke_opacity':0.5},
+                {'color':GREEN,'stroke_width':3,'stroke_opacity':0.5},
+            ]
+        )
+        self.play(
+            LayoutAnimation(self,root,node_style = node_style)
+        )
+        self.wait()
+
+        # 修改布局
+        layout_config = LayoutConfig(
+            direction = LEFT
+        )
+        self.play(
+            LayoutAnimation(self,root,layout_config = layout_config,node_style = node_style),
+            self.camera.frame.animate.shift(12*LEFT)
         )
         self.wait()
 

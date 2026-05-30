@@ -63,9 +63,8 @@ class Scene_Name(MovingCameraScene):
                 }
             ]
         }
-
-        mind = MindMap(mindmap)
-        mind.scale_to_fit_width(12)
+        mind = TimeLine(mindmap)
+        mind.scale_to_fit_width(13)
         for node in mind.dfs_walker():
             if node.connector:
                 self.play(

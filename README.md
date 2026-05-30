@@ -57,7 +57,7 @@ from manim_mindmap import *
 场景中已经显示一个思维导图，向其中添加一个或多个节点，并呈现添加的动画效果：
 
 ```python
-node_style = NodeStyle(direction=DOWN)
+node_style = NodeStyle()
 
 root = Node(Tex(r'圆周率').to_edge(UP))
 A = Node(Tex(r'圆的面积'))
@@ -72,11 +72,11 @@ F = Node(Tex(r'球的表面积'))
 G = Node(Tex(r'正方形'))
 H = Node(Tex(r'长方形'))
 self.play(
-    InsertNode(self,{root:[A,B,C]},node_style),
+    InsertNode(self,{root:[A,B,C]},node_style = node_style),
 )
 self.wait()
 self.play(
-    InsertNode(self,{A:[D,E],B:[F],C:[G,H]},node_style),
+    InsertNode(self,{A:[D,E],B:[F],C:[G,H]},node_style = node_style),
 )
 ```
 
@@ -101,7 +101,7 @@ self.play(
 
 ```python
 self.play(
-    AlterNode(self,{root:Tex(r'圆周率$\pi$')},node_style),
+    AlterNode(self,{root:Tex(r'圆周率$\pi$')},node_style = node_style),
 )
 ```
 
@@ -113,12 +113,12 @@ self.play(
 
 ```python
 self.play(
-    RemoveNode(self,[B,C],node_style),
+    RemoveNode(self,[B,C],node_style = node_style),
 )
 self.wait()
 
 self.play(
-    RemoveNode(self,root,node_style),
+    RemoveNode(self,root,node_style = node_style),
 )
 ```
 
@@ -138,7 +138,7 @@ self.play(
 如果需要同时添加和移除等操作，可以使用LayoutAnimation。使用方法如下：
 
 ```python
-node_style = NodeStyle(direction=DOWN)
+node_style = NodeStyle()
 root = Node(Tex(r'圆周率').to_edge(UP))
 A = Node(Tex(r'圆的面积'))
 B = Node(Tex(r'圆的周长'))
@@ -159,7 +159,7 @@ C.add_child(D)
 C.add_child(E)
 
 self.play(
-    LayoutAnimation(self,root,node_style)
+    LayoutAnimation(self,root,node_style = node_style)
 )
 self.wait()
 
@@ -170,14 +170,14 @@ C.add_child(G)
 F.add_child(H)
 
 self.play(
-    LayoutAnimation(self,root,node_style)
+    LayoutAnimation(self,root,node_style = node_style)
 )
 self.wait()
 
 F.scale(1.5)
 
 self.play(
-    LayoutAnimation(self,root,node_style)
+    LayoutAnimation(self,root,node_style = node_style)
 )
 self.wait()
 
@@ -185,7 +185,7 @@ C.remove_child(G)
 root.remove_child(C)
 
 self.play(
-    LayoutAnimation(self,root,node_style)
+    LayoutAnimation(self,root,node_style = node_style)
 )
 self.wait()
 ```
@@ -302,8 +302,60 @@ self.play(
 + 根节点是：`(0,)`
 + 根节点的第一个、第二个子节点分别是：`(0,0),(0,1)`
 
+### TimeLine 类
+
+时序图的实现：TimeLine 类与 MindMap 类用法相同。
+
+在前面的 `LayoutAnimation` 和插入节点 `InsertNode`等动画中，通过 `layout_type` 参数指定为时序图的布局
+
+```python
+self.play(
+    LayoutAnimation(
+        self,
+        root,
+        layout_type = LayoutType.TimeLine,
+        node_style = node_style
+    )
+)
+```
+
+布局参数 `LayoutConfig` 说明：
+```python
+# 时序图布局参数
+self.play(
+    LayoutAnimation(
+        self,
+        root,
+        layout_type = LayoutType.TimeLine,
+        layout_config = LayoutConfig(
+            node_spacing = 0.5,
+            level_spacing = 0.5,
+            sides = (UP,DOWN), 
+        )
+        node_style = node_style
+    )
+)
+# 默认的思维导图布局参数
+self.play(
+    LayoutAnimation(
+        self,
+        root,
+        layout_type = LayoutType.TimeLine,
+        layout_config = LayoutConfig(
+            direction = RIGHT,
+            node_spacing = 0.5,
+            level_spacing = 0.5, 
+        )
+        node_style = node_style
+    )
+)
+```
+sides: 指定时序图的二级子树的生长方向只能是UP或DOWN，或(UP,DOWN)和(DOWN,UP)。不指定的话，默认为(UP,DOWN)
+direction:思维导图的布局方向，时序图的布局方向只能是RIGHT,不需指定
+node_spacing:节点之间的间距
+level_spacing:层级之间的间距
+
 ## 开发计划
 
 + 添加其他的布局算法
-    + 时序图
     + 鱼骨图

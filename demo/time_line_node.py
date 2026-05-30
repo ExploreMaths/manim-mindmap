@@ -3,7 +3,7 @@ from manim_mindmap import *
 
 class Scene_Name(MovingCameraScene):
     def construct(self):
-        self.camera.frame.set_width(25).move_to(RIGHT)
+        self.camera.frame.set_width(50).move_to(10*RIGHT)
         root = Node(Tex('球体积').to_edge(LEFT))
 
         A1 = Node(Tex('公元前3世纪'))
@@ -13,7 +13,7 @@ class Scene_Name(MovingCameraScene):
         A5 = Node(Tex('公元18世纪'))
         # 首次创建
         self.play(
-            InsertNode(self,{root:[A1,A2,A3,A4,A5]}),
+            InsertNode(self,{root:[A1,A2,A3,A4,A5]},layout_type=LayoutType.TimeLine),
             run_time = 2
         )
         self.wait()
@@ -37,10 +37,10 @@ class Scene_Name(MovingCameraScene):
         # 插入节点
         for dic in [{A2:[A21,A22]},{A22:[A221,A222]},{A3:[A31,A32]},{A4:[A41,A42]}]:
             self.play(
-                InsertNode(self,dic)
+                InsertNode(self,dic,layout_type=LayoutType.TimeLine)
             )
         self.play(
-            InsertNode(self,{A1:[A11],A5:[A51]}),
+            InsertNode(self,{A1:[A11],A5:[A51]},layout_type=LayoutType.TimeLine),
         )
         self.wait()
 
@@ -60,14 +60,14 @@ class Scene_Name(MovingCameraScene):
             ]
         )
         self.play(
-            ScaleNode(self,{A31:1.5,A32:1.5,A51:0.8},node_style = node_style),
+            ScaleNode(self,{A31:1.5,A32:1.5,A51:0.8},layout_type=LayoutType.TimeLine,node_style = node_style),
             run_time = 2
         )
         self.wait()
 
         # 修改节点内容
         self.play(
-            AlterNode(self,{root:Tex(r'球\\体\\积',color = RED,font_size = 60)}),
+            AlterNode(self,{root:Tex(r'球\\体\\积',color = RED,font_size = 60)},layout_type=LayoutType.TimeLine),
             run_time = 2
         )
         self.wait()

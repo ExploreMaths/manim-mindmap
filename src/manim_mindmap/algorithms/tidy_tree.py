@@ -5,10 +5,12 @@ Non-layered Tidy Tree Layout Algorithm (Python Implementation)
 算法参考来源《Improving Walker's Algorithm to Run in Linear Time》
 """
 __all__ = [
-    'tidy_tree_layout'
+    'TidyTreeLayout'
 ]
 from dataclasses import dataclass, field
 from typing import List, Optional, Any
+from .layout_config import LayoutDirection
+from .layout import Layout
 
 @dataclass
 class WrappedTree:
@@ -20,6 +22,7 @@ class WrappedTree:
     y: float = 0.0
     width: float = 0.0
     height: float = 0.0
+    level: int = 0 # 节点层级
     # 子节点
     children: List['WrappedTree'] = field(default_factory=list)
     child_number: int = 0
@@ -41,11 +44,12 @@ class WrappedTree:
     thread_right: Optional['WrappedTree'] = None
 
     @classmethod
-    def from_node(cls, node, is_horizontal: bool) -> 'WrappedTree':
+    def from_node(cls, node, is_horizontal: bool,level:int = 0) -> 'WrappedTree':
         """从原始节点创建包装树"""
         wt = cls()
         wt.node = node
-
+        wt.level = level
+        level += 1
         # 复制尺寸
         if is_horizontal:
             wt.width = getattr(node, 'height', 0)
@@ -58,7 +62,7 @@ class WrappedTree:
 
         # 递归创建子节点
         children = getattr(node, 'children', [])
-        wt.children = [cls.from_node(child, is_horizontal) for child in children]
+        wt.children = [cls.from_node(child, is_horizontal, level) for child in children]
         wt.child_number = len(wt.children)
         return wt
 
@@ -109,11 +113,11 @@ def layer(node, direction,level_spacing):
     """设置层级（深度）坐标"""
     if (parent := node.parent) is not None:
         node.level = parent.level + 1
-        if direction == 'right':
+        if direction == LayoutDirection.LeftToRight:
             node.x = parent.x + (parent.width + node.width) / 2 + level_spacing
-        elif direction == 'left':
+        elif direction == LayoutDirection.RightToLeft:
             node.x = parent.x - (parent.width + node.width) / 2 - level_spacing
-        elif direction == 'up':
+        elif direction == LayoutDirection.BottomToTop:
             node.y = parent.y + (parent.height + node.height) / 2 + level_spacing
         else:
             node.y = parent.y - (parent.height + node.height) / 2 - level_spacing
@@ -121,12 +125,12 @@ def layer(node, direction,level_spacing):
     for child in node.children:
         layer(child, direction,level_spacing)
 
-class TidyTreeLayout:
+class TidyTreeLayout(Layout):
     """非分层整洁树布局算法"""
     def __init__(
         self,
         root,
-        direction: str = 'right',
+        direction: LayoutDirection = LayoutDirection.LeftToRight,
         node_spacing: float = 0.5,
         level_spacing: float = 0.5
     ):
@@ -138,7 +142,7 @@ class TidyTreeLayout:
         self.wt = None
 
     def _is_horizontal(self,direction):
-        return direction in ('right', 'left')
+        return direction in (LayoutDirection.LeftToRight, LayoutDirection.RightToLeft)
 
     def layout(self):
         """执行布局计算"""
@@ -148,6 +152,7 @@ class TidyTreeLayout:
         self.second_walk(self.wt, 0)
         convert_back(self.wt, self.root, self.is_horizontal)
         normalize(self.root, self.is_horizontal)
+        # self.compute_connectors()
         return self.root
 
     def first_walk(self, t: WrappedTree):
@@ -322,27 +327,31 @@ class TidyTreeLayout:
             modsumdelta += d + child.change
             child.mod += modsumdelta
 
-def tidy_tree_layout(
-    root,
-    direction: str = "down",
-    node_spacing: float = 0.5,
-    level_spacing: float = 0.5
-    ):
-    """
-    对树形结构进行整洁布局函数接口
+    def compute_connectors(self):
+        """计算连接器"""
+        def compute_node(node:Any):
+            parent = node.parent
+            match self.direction:
+                case LayoutDirection.TopToBottom:
+                    xs,ys = parent.x, parent.y - parent.height/2
+                    xe,ye = node.x, node.y + node.height/2
+                    points = ((xs, ys),(xs, (ys + ye) / 2),(xe, (ys + ye) / 2),(xe, ye))
+                case LayoutDirection.BottomToTop:
+                    xs,ys = parent.x, parent.y + parent.height/2
+                    xe,ye = node.x, node.y - node.height/2
+                    points = ((xs, ys),(xs, (ys + ye) / 2),(xe, (ys + ye) / 2),(xe, ye))
+                case LayoutDirection.LeftToRight:
+                    xs,ys = parent.x + parent.width/2, parent.y
+                    xe,ye = node.x - node.width/2, node.y
+                    points = ((xs, ys),((xs + xe) / 2, ys),((xs + xe) / 2, ye),(xe, ye))
+                case LayoutDirection.RightToLeft:
+                    xs,ys = parent.x - parent.width/2, parent.y
+                    xe,ye = node.x + node.width/2, node.y
+                    points = ((xs, ys),((xs + xe) / 2, ys),((xs + xe) / 2, ye),(xe, ye))
+            node.connector_points = points
 
-    Args:
-        root: 根节点，需要包含以下属性：
-            - width: 节点宽度
-            - height: 节点高度
-            - children: 子节点列表
-            - x, y: 布局后的坐标（会被修改）
-        direction: 布局方向，可选 "down", "up", "left", "right"，默认 "down"
-        node_spacing: 兄弟节点间距,默认0.5
-        level_spacing: 层级节点间距,默认0.5
+            for child in node.children:
+                compute_node(child)
 
-    Returns:
-        root: 修改后的根节点(x, y 已被设置)
-    """
-    layout = TidyTreeLayout(root, direction,node_spacing, level_spacing)
-    return layout.layout()
+        for child in self.root.children:
+            compute_node(child)

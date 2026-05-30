@@ -8,6 +8,7 @@ __all__ = [
 from enum import Enum
 from collections import deque
 from typing import Generator,List,Dict
+
 from manim.mobject.mobject import Group
 from manim.mobject.types.vectorized_mobject import VMobject,VGroup
 from manim.mobject.geometry.line import Line
@@ -15,6 +16,8 @@ from manim.mobject.geometry.polygram import Rectangle
 from manim.constants import LEFT, RIGHT, UP, DOWN
 from manim.utils.color import *
 import numpy as np
+
+from ..algorithms import LayoutType,LayoutDirection
     
 class NodeSate(Enum):
     """节点状态"""
@@ -28,9 +31,6 @@ class NodeStyle:
     '''整体布局参数,以及节点样式字典列表,按节点层级索引'''
     def __init__(
         self,
-        direction = RIGHT,
-        level_spacing = 0.5,
-        node_spacing = 0.5,
         node_style:List[Dict] = [
             {'color':RED, 'stroke_width':8},
             {'color':BLUE, 'stroke_width':6},
@@ -50,12 +50,6 @@ class NodeStyle:
             {'color':WHITE,'font_size':36}
         ]
     ):
-        if not any(np.array_equal(direction, d) for d in [UP, DOWN, LEFT, RIGHT]):
-            raise ValueError(f'direction must be one of {LEFT,RIGHT,UP,DOWN}')
-        self.direction = direction
-        self.level_spacing = level_spacing
-        self.node_spacing = node_spacing
-        
         self.node_num = len(node_style)
         if self.node_num:
             self.node_style = node_style
@@ -116,7 +110,6 @@ def bfs_walker(root: 'Node') -> Generator:
 
 class Node:
     """树节点类"""
-    direction = RIGHT
     def __init__(
         self,
         vmobject:VMobject = None,
@@ -139,6 +132,7 @@ class Node:
         self.neighbor = None  # 邻居节点
         self.children = []
         self.node_state = NodeSate.INSERT  # 节点状态
+        self.side = None
     
     def scale(self, scale_factor: float):
         """缩放节点"""
@@ -168,7 +162,8 @@ class Node:
         self.width = self.alter_vmobject.width + 2*self.buff
         self.height = self.alter_vmobject.height + 2*self.buff
 
-    def get_connector(self, direction = RIGHT,**kwargs) -> Line:
+    def _get_mindmap_connector(self, direction: np.ndarray, **kwargs) -> Line:
+        """获取思维导图节点连接线"""
         if np.array_equal(direction,UP):
             start,end = self.parent.surr_rect.get_top(),self.surr_rect.get_bottom()
         elif np.array_equal(direction,DOWN):
@@ -180,20 +175,63 @@ class Node:
         vec = np.dot(end - start,direction) * direction*0.5
         return Line(start,start+vec,**kwargs).add_line_to(end-vec).add_line_to(end)
     
-    def set_connector(self,direction = RIGHT,**kwargs):
-        """设置连接线"""
-        if self.parent is not None:
-            if not hasattr(self,'connector'):
-                self.direction = direction
-                self.connector = self.get_connector(direction,**kwargs)
-                self.connector.add_updater(lambda m: m.become(self.get_connector(direction,**kwargs)))
+    def _get_timeline_connector(self,**kwargs) -> Line:
+        """获取时序图节点连接线"""
+        if self.level == 1:
+            if (neighbor:=self.neighbor) is not None:
+                start = neighbor.surr_rect.get_right()
+            else:
+                start = self.parent.surr_rect.get_right()
+            end = self.surr_rect.get_left()
+            return Line(start,end,**kwargs)
+
+        if self.side == LayoutDirection.BottomToTop:
+            start = self.parent.surr_rect.get_top()
+        elif self.side == LayoutDirection.TopToBottom:
+            start = self.parent.surr_rect.get_bottom()
+        start +=  0.25*self.parent.width*LEFT
+        end = self.surr_rect.get_left()
+        middle = np.array([start[0],end[1],0])
+        return Line(start,middle,**kwargs).add_line_to(end)
+
+    def get_connector(self,layout_type,direction,**kwargs) -> Line:
+        match layout_type:
+            case LayoutType.MindMap:
+                return self._get_mindmap_connector(direction,**kwargs)
+            case LayoutType.TimeLine:
+                return self._get_timeline_connector(**kwargs)
     
-    def change_connector(self,direction = RIGHT,**kwargs):
+    def set_connector(self,layout_type,direction = RIGHT,**kwargs):
+        """设置连接线"""
+        if self.parent is not None and not hasattr(self,'connector'):
+            self.connector_style = kwargs
+            self.connector = self.get_connector(layout_type,direction,**kwargs)
+            self.connector.add_updater(
+                lambda m: m.become(
+                    self.get_connector(layout_type,direction,**kwargs)
+                )
+            )
+    
+    def change_connector(
+        self,
+        change_dir:bool,
+        change_layout:bool,
+        layout_type: LayoutType,
+        direction:np.ndarray = RIGHT,
+        **kwargs
+    ):
         """改变连接线"""
-        if hasattr(self,'connector') and not np.array_equal(self.direction,direction):
+        current_style = getattr(self, 'connector_style', None)
+        if hasattr(self,'connector') and (
+            change_layout or change_dir or kwargs != current_style
+        ):
             self.connector.remove_updater(*self.connector.get_updaters())
-            self.direction = direction
-            self.connector.add_updater(lambda m: m.become(self.get_connector(direction,**kwargs)))
+            self.connector_style = kwargs
+            self.connector.add_updater(
+                lambda m: m.become(
+                    self.get_connector(layout_type,direction,**kwargs)
+                )
+            )
 
     def get_node_and_line_without_updater(self) -> Group:
         node_mobj = Group(self.surr_rect,self.vmobject)
@@ -209,7 +247,10 @@ class Node:
     
     def get_descendants(self) -> List['Node']:
         """获取所有子孙节点"""
-        def descendants_of_node(node: Node,descendants: list[Node] = []) -> list[Node]:
+        def descendants_of_node(
+            node: Node,
+            descendants: list[Node] = []
+        ) -> list[Node]:
             if node.children:
                 descendants.extend(node.children)
             for node_ in node.children:
@@ -226,7 +267,10 @@ class Node:
     
     def get_descendants_mobjects(self) -> Group:
         """获取所有子孙节点对象"""
-        def descendants_mobjects_of_node(node: Node,descendants: Group = Group()) -> Group:
+        def descendants_mobjects_of_node(
+            node: Node,
+            descendants: Group = Group()
+        ) -> Group:
             for node_ in node.children:
                 descendants.add(node_.vmobject,node_.surr_rect)
                 descendants_mobjects_of_node(node_,descendants)

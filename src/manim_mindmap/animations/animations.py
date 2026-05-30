@@ -6,6 +6,7 @@ __all__ = [
     'AlterNode',
 ]
 from typing import List,Dict
+
 from manim.scene.scene import Scene
 from manim.mobject.types.image_mobject import ImageMobject
 from manim.mobject.mobject import Group
@@ -18,7 +19,8 @@ from manim.animation.fading import FadeIn,FadeOut
 from manim.utils.color import *
 from manim.constants import *
 import numpy as np
-from ..mindmap.layout import Layout
+
+from ..algorithms import LayoutFactory,LayoutType,LayoutConfig
 from ..nodes import Node,bfs_walker,NodeSate,NodeStyle
 
 def fadeout_of_subtrees(nodes: List[Node] = None) -> FadeOut:
@@ -39,11 +41,12 @@ def animate_of_create(
     pos: np.ndarray,
     direction: np.ndarray,
     line_styles:Dict,
-    node_styles:Dict
+    node_styles:Dict,
+    layout_type:LayoutType
 ) -> List[Animation]:
     '''创建节点动画'''
     anims = []
-    node.set_connector(direction,**line_styles)
+    node.set_connector(layout_type,direction,**line_styles)
     if isinstance(node.vmobject,ImageMobject):
         AnimateClass = FadeIn
     elif isinstance(node.vmobject,(Tex,MathTex)):
@@ -55,7 +58,11 @@ def animate_of_create(
             AnimateClass(node.vmobject.move_to(pos)),
             Create(
                 node.surr_rect.become(
-                    Rectangle(height = node.height,width = node.width, **node_styles).move_to(pos)
+                    Rectangle(
+                        height = node.height,
+                        width = node.width,
+                        **node_styles
+                    ).move_to(pos)
                 )
             )
         ]
@@ -70,16 +77,23 @@ def animate_of_display(
     pos: np.ndarray,
     direction: np.ndarray,
     line_styles:Dict,
-    node_styles:Dict
+    node_styles:Dict,
+    layout_type:LayoutType,
+    change_dir:bool,
+    change_layout:bool
 ) -> List[Animation]:
     '''已经显示在scene中的节点,更新位置和样式的动画'''
     anims =[
         node.vmobject.animate.move_to(pos),
         node.surr_rect.animate.become(
-            Rectangle(height = node.height,width = node.width, **node_styles).move_to(pos)
+            Rectangle(
+                height = node.height,
+                width = node.width,
+                **node_styles
+            ).move_to(pos)
         )
     ]
-    node.change_connector(direction,**line_styles)
+    node.change_connector(change_dir,change_layout,layout_type,direction,**line_styles)
     return anims
 
 def animate_of_scale(
@@ -87,16 +101,23 @@ def animate_of_scale(
     pos: np.ndarray,
     direction: np.ndarray,
     line_styles:Dict,
-    node_styles:Dict
+    node_styles:Dict,
+    layout_type:LayoutType,
+    change_dir:bool,
+    change_layout:bool
 ) -> List[Animation]:
     '''已经显示在scene中的节点,放大或缩小的动画'''
     anims = [
         node.vmobject.animate.scale(node.scale_factor).move_to(pos),
         node.surr_rect.animate.become(
-            Rectangle(height = node.height,width = node.width, **node_styles).move_to(pos)
+            Rectangle(
+                height = node.height,
+                width = node.width,
+                **node_styles
+            ).move_to(pos)
         )
     ]
-    node.change_connector(direction,**line_styles)
+    node.change_connector(change_dir,change_layout,layout_type,direction,**line_styles)
     node.node_state = NodeSate.DISPLAY
     return anims
 
@@ -105,7 +126,10 @@ def animate_of_alter(
     pos: np.ndarray,
     direction: np.ndarray,
     line_styles:Dict,
-    node_styles:Dict
+    node_styles:Dict,
+    layout_type:LayoutType,
+    change_dir:bool,
+    change_layout:bool
 ) -> List[Animation]:
     '''已经显示在scene中的节点,更换 vmobject 的动画'''
     anims = [
@@ -113,11 +137,15 @@ def animate_of_alter(
             node.alter_vmobject.move_to(pos)
         ),
         node.surr_rect.animate.become(
-            Rectangle(height = node.height,width = node.width, **node_styles).move_to(pos)
+            Rectangle(
+                height = node.height,
+                width = node.width,
+                **node_styles
+            ).move_to(pos)
         )
     ]
     node.node_state = NodeSate.DISPLAY
-    node.change_connector(direction,**line_styles)
+    node.change_connector(change_dir,change_layout,layout_type,direction,**line_styles)
     return anims
 
 def animate_of_node(
@@ -125,34 +153,68 @@ def animate_of_node(
     pos: np.ndarray,
     direction: np.ndarray,
     line_styles:Dict,
-    node_styles:Dict
+    node_styles:Dict,
+    layout_type:LayoutType,
+    change_dir:bool,
+    change_layout:bool
 ) -> List[Animation]:
     '''获取 node 的动画'''
+    args = (node,pos,direction,line_styles,node_styles,layout_type)
     match node.node_state:
         case NodeSate.INSERT:
-            anims = animate_of_create(node,pos,direction,line_styles, node_styles)
+            anims = animate_of_create(*args)
         case NodeSate.DISPLAY:
-            anims = animate_of_display(node,pos,direction,line_styles, node_styles)
+            anims = animate_of_display(*args,change_dir,change_layout)
         case NodeSate.SCALE:
-            anims = animate_of_scale(node,pos,direction,line_styles, node_styles)
+            anims = animate_of_scale(*args,change_dir,change_layout)
         case NodeSate.ALTER:
-            anims = animate_of_alter(node,pos,direction,line_styles, node_styles)
+            anims = animate_of_alter(*args,change_dir,change_layout)
     return anims
+
+def is_layout_change(root: Node, layout_type: LayoutType) -> bool:
+    '''
+    判断是否替换了布局算法
+    
+    Args:
+        root (Node): 根节点(初次布局,或已经应用过布局)
+        layout_type (LayoutType): 将要采用的布局方法
+    Returns (bool):是否更换布局算法
+    '''
+    origin_layout = getattr(root,'layout_type',None)
+    if origin_layout is not None:
+        return origin_layout != layout_type
+    return False
+
+def is_direction_change(root: Node, direction = RIGHT) -> bool:
+    '''
+    判断是否更换了布局方向
+
+    Args:
+        root (Node): 根节点(初次布局,或已经应用过布局)
+        direction: 将要采用的布局方向
+    Returns (bool):是否更换布局方向
+    '''
+    origin_dir = getattr(root,'direction',None)
+    if origin_dir is not None:
+        return not np.array_equal(origin_dir,direction)
+    return False
 
 def animate_of_layout(
     root: Node,
     remove_nodes: List[Node] = None,
+    layout_type: LayoutType = LayoutType.MindMap,
+    layout_config: LayoutConfig = LayoutConfig(),
     node_style: NodeStyle = NodeStyle(),
 ) -> List[Animation]:
     """动画的核心方法: 完整的 Layout 布局算法并生成动画"""
-    direction = node_style.direction
+    direction = layout_config.direction
+    change_dir = is_direction_change(root,direction)
+    change_layout = is_layout_change(root,layout_type)
     current_x,current_y,_ = root.vmobject.get_center()
-    root = Layout(
-        root,
-        direction,
-        node_style.level_spacing,
-        node_style.node_spacing
-    ).do_layout()
+    layout = LayoutFactory.create_layout(layout_type,root,layout_config)
+    root = layout.layout()
+    setattr(root,'layout_type',layout_type)
+    setattr(root,'direction',direction)
     x_offset = current_x - root.x
     y_offset = current_y - root.y
     anims = [fadeout_of_subtrees(remove_nodes)] if remove_nodes else []
@@ -163,8 +225,19 @@ def animate_of_layout(
         node_styles = node_style.get_node_style(node.level)
         line_styles = node_style.get_line_style(node.level)
         pos = np.array([node.x, node.y, 0])
-        anims.extend(animate_of_node(node,pos,direction,line_styles, node_styles))
-        node.x = node.y = node.level = 0
+        anims.extend(
+            animate_of_node(
+                node,
+                pos,
+                direction,
+                line_styles,
+                node_styles,
+                layout_type,
+                change_dir,
+                change_layout
+            )
+        )
+        node.x = node.y = 0
     return anims
     
 class AbstractLayoutAnimation(AnimationGroup):
@@ -172,7 +245,9 @@ class AbstractLayoutAnimation(AnimationGroup):
         self,
         scene:Scene,
         root:Node,
-        node_style = NodeStyle(),
+        layout_type:LayoutType = LayoutType.MindMap,
+        layout_config:LayoutConfig = LayoutConfig(),
+        node_style:NodeStyle = NodeStyle(),
         **kwargs
     ):
         '''
@@ -181,10 +256,14 @@ class AbstractLayoutAnimation(AnimationGroup):
         Args:
             scene (Scene): 当前场景
             root (Node): 根节点
+            layout_type (LayoutType, optional): 布局类型. Defaults to LayoutType.MindMap.
+            layout_config (LayoutConfig, optional): 布局参数. Defaults to LayoutConfig().
             node_style (NodeStyle, optional): 布局和节点样式. Defaults to NodeStyle().
         '''
         self.scene = scene  
         self.root = root
+        self.layout_type = layout_type
+        self.layout_config = layout_config
         self.node_style = node_style
         anims = self.collect_animations()
         super().__init__(*anims,**kwargs)
@@ -248,16 +327,27 @@ class LayoutAnimation(AbstractLayoutAnimation):
         self,
         scene:Scene,
         root:Node,
-        node_style = NodeStyle(),
+        layout_type:LayoutType = LayoutType.MindMap,
+        layout_config:LayoutConfig = LayoutConfig(),
+        node_style:NodeStyle = NodeStyle(),
         **kwargs
     ):
-        super().__init__(scene, root, node_style,**kwargs)
+        super().__init__(
+            scene,
+            root,
+            layout_type = layout_type,
+            layout_config = layout_config,
+            node_style = node_style,
+            **kwargs
+        )
     
     def collect_animations(self):
         remove_nodes = self._check_node_state()
         return animate_of_layout(
             self.root,
             remove_nodes,
+            self.layout_type,
+            self.layout_config,
             self.node_style
         )
     
@@ -267,7 +357,9 @@ class RemoveNode(LayoutAnimation):
         self,
         scene:Scene,
         nodes:Node | List[Node],
-        node_style = NodeStyle(),
+        layout_type:LayoutType = LayoutType.MindMap,
+        layout_config:LayoutConfig = LayoutConfig(),
+        node_style:NodeStyle = NodeStyle(),
         **kwargs
     ):
         self.is_whole_tree = False
@@ -282,7 +374,14 @@ class RemoveNode(LayoutAnimation):
                 break
             else:
                 parent.remove_child(node)
-        super().__init__(scene, root, node_style,**kwargs)
+        super().__init__(
+            scene,
+            root,
+            layout_type = layout_type,
+            layout_config = layout_config,
+            node_style = node_style,
+            **kwargs
+        )
 
     def collect_animations(self):
         if self.is_whole_tree:
@@ -307,7 +406,9 @@ class InsertNode(LayoutAnimation):
         self,
         scene:Scene,
         father_children:Dict[Node,List[Node]] = None,
-        node_style = NodeStyle(),
+        layout_type:LayoutType = LayoutType.MindMap,
+        layout_config:LayoutConfig = LayoutConfig(),
+        node_style:NodeStyle = NodeStyle(),
         **kwargs
     ):
         '''
@@ -318,7 +419,14 @@ class InsertNode(LayoutAnimation):
         '''
         root = None
         self.father_children = father_children
-        super().__init__(scene, root, node_style,**kwargs)
+        super().__init__(
+            scene,
+            root,
+            layout_type = layout_type,
+            layout_config = layout_config,
+            node_style = node_style,
+            **kwargs
+        )
 
     def get_root(self,nodes:List[Node]):
         if len(nodes) == 0:
@@ -341,7 +449,9 @@ class ScaleNode(LayoutAnimation):
         self,
         scene:Scene,
         node_scale:Dict[Node,float] = None,
-        node_style = NodeStyle(),
+        layout_type:LayoutType = LayoutType.MindMap,
+        layout_config:LayoutConfig = LayoutConfig(),
+        node_style:NodeStyle = NodeStyle(),
         **kwargs
     ):
         """
@@ -353,14 +463,23 @@ class ScaleNode(LayoutAnimation):
         for node, scale in node_scale.items():
             node.scale(scale)
         root = self.get_common_root(list(node_scale.keys()))
-        super().__init__(scene, root, node_style,**kwargs)
+        super().__init__(
+            scene,
+            root,
+            layout_type = layout_type,
+            layout_config = layout_config,
+            node_style = node_style,
+            **kwargs
+        )
 
 class AlterNode(LayoutAnimation):
     def __init__(
         self,
         scene:Scene,
         node_vmobject:Dict[Node,VMobject] = None,
-        node_style = NodeStyle(),
+        layout_type:LayoutType = LayoutType.MindMap,
+        layout_config:LayoutConfig = LayoutConfig(),
+        node_style:NodeStyle = NodeStyle(),
         **kwargs
     ):
         """
@@ -372,4 +491,11 @@ class AlterNode(LayoutAnimation):
         for node, scale in node_vmobject.items():
             node.alter_content(scale)
         root = self.get_common_root(list(node_vmobject.keys()))
-        super().__init__(scene, root, node_style,**kwargs)
+        super().__init__(
+            scene,
+            root,
+            layout_type = layout_type,
+            layout_config = layout_config,
+            node_style = node_style,
+            **kwargs
+        )

@@ -1,1 +1,1 @@
-from .layout import *
+from .mindmap import *
