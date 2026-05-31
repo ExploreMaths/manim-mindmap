@@ -19,6 +19,7 @@ class LayoutType(Enum):
     '''布局算法'''
     MindMap = 'tidy tree'
     TimeLine = 'timeline'
+    Standard = 'standard'
 
 class LayoutConfig:
     def __init__(

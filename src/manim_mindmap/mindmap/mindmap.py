@@ -1,6 +1,7 @@
 __all__ = [
     'MindMap',
-    'TimeLine'
+    'TimeLine',
+    'StandardMap',
 ]
 from typing import Dict
 
@@ -9,7 +10,7 @@ from manim.utils.color import *
 
 from .base import NodeMobject,AbstractMap,generate_tree
 from ..nodes import Node,NodeStyle,bfs_walker
-from ..algorithms import TidyTreeLayout,TimeLineLayout,LayoutConfig,LayoutType
+from ..algorithms import TidyTreeLayout,TimeLineLayout,StandardLayout,LayoutConfig,LayoutType
     
 class MindMap(AbstractMap):
     """
@@ -211,6 +212,76 @@ class TimeLine(AbstractMap):
         for node in bfs_walker(self.root):
             node.connector = node.get_connector(
                 LayoutType.TimeLine,
+                direction = RIGHT,
+                **self._get_connector_style(level = len(node.ID))
+            ) if node.parent is not None else None
+
+            self.node_data_dict[node.ID] = NodeMobject(
+                vmobject = node.vmobject,
+                surr_rect = node.surr_rect,
+                connector = node.connector,
+                text = node.text
+            )
+
+class StandardMap(AbstractMap):
+    """
+    两侧布局的思维导图:数据格式与 MindMap 相同
+    
+    参数说明:
+        map: 时序图数据
+        buff: 节点内容和节点边框间距
+        direction: 布局方向
+        level_spacing: 层间距
+        node_spacing: 节点间距
+        node_style: 节点样式
+    """
+    def __init__(
+        self,
+        map:Dict = {},
+        buff:float = 0.2,
+        direction = RIGHT,
+        level_spacing = 1.0,
+        node_spacing = 0.5,
+        node_style :NodeStyle = NodeStyle(
+            node_style = [
+                {'color':WHITE,'stroke_width':8},
+                {'color':WHITE,'stroke_width':6},
+                {'color':WHITE,'stroke_width':4}
+            ],
+            line_style = [
+                {'color':WHITE,'stroke_width':8},
+                {'color':WHITE,'stroke_width':6},
+                {'color':WHITE,'stroke_width':4}
+            ],
+            text_style = [
+                {'color':RED,'font_size':64},
+                {'color':YELLOW,'font_size':56},
+                {'color':GREEN,'font_size':48},
+                {'color':WHITE,'font_size':36}
+            ]
+        )
+    ):
+        self.node_style = node_style
+        super().__init__(
+            layout_method = StandardLayout(
+                root = generate_tree(
+                    Map = map,
+                    node_style = node_style,
+                    buff = buff
+                ),
+                **LayoutConfig(
+                    direction = direction,
+                    node_spacing = node_spacing,
+                    level_spacing = level_spacing,
+                ).mindmap
+            )
+        )
+
+    def _set_connectors(self):
+        """设置连接线"""
+        for node in bfs_walker(self.root):
+            node.connector = node.get_connector(
+                LayoutType.Standard,
                 direction = RIGHT,
                 **self._get_connector_style(level = len(node.ID))
             ) if node.parent is not None else None

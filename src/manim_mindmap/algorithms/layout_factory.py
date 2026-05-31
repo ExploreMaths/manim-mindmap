@@ -3,6 +3,7 @@ __all__ = [
 ]
 from .tidy_tree import TidyTreeLayout
 from .time_line import TimeLineLayout
+from .standard_mindmap import StandardLayout
 from .layout_config import LayoutType, LayoutConfig
 
 class LayoutFactory:
@@ -20,3 +21,6 @@ class LayoutFactory:
             case LayoutType.TimeLine:
                 kwargs = layout_config.timeline
                 return TimeLineLayout(root, **kwargs)
+            case LayoutType.Standard:
+                kwargs = layout_config.mindmap
+                return StandardLayout(root, **kwargs)

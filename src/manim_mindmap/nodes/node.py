@@ -200,6 +200,11 @@ class Node:
                 return self._get_mindmap_connector(direction,**kwargs)
             case LayoutType.TimeLine:
                 return self._get_timeline_connector(**kwargs)
+            case LayoutType.Standard:
+                return self._get_mindmap_connector(
+                    -direction if self.is_flip else direction,
+                    **kwargs
+                )
     
     def set_connector(self,layout_type,direction = RIGHT,**kwargs):
         """设置连接线"""

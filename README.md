@@ -283,6 +283,19 @@ self.play(
 
 如果不想通过节点类 Node 组织思维导图，可以考虑 MindMap 类。
 
+### 布局类型 LayoutType
+
+在 LayoutAnimation 和 InsertNode 等动画类中，可以通过参数 layout_type 指定布局类型，默认为 LayoutType.MindMap。LayoutType 类中定义了多种布局类型：
++ LayoutType.MindMap：思维导图布局（默认）
++ LayoutType.TimeLine：时间轴布局
++ LayoutType.Standard：左右或上下两侧布局的思维导图
+
+比如两侧布局的思维导图，动画效果：
+
+<div align="center">
+  <video src="https://github.com/user-attachments/assets/bc204733-e41e-436c-b1b3-af5dc7e26808" width="600" controls></video>
+</div>
+
 ### MindMap 类
 
 通过 MindMap 类,解析思维导图结构数据，形成节点的树结构，完成布局，其中“思维导图数据结构”如下：
@@ -397,6 +410,14 @@ self.play(
   <video src="https://github.com/user-attachments/assets/d726f3e8-c9f5-4a65-904b-49f5a7a873b1" width="600" controls></video>
 </div>
 
+### StandardMap 类
+
+StandardMap 类是两侧布局的思维导图：与 MindMap 类用法相同，参数也相同。动画效果如下：
+
+<div align="center">
+  <video src="https://github.com/user-attachments/assets/da7f43fd-e160-4ac3-858b-96e6af50ce2b" width="600" controls></video>
+</div>
+
 ### TimeLine 类
 
 时序图的实现：TimeLine 类与 MindMap 类用法相同。动画效果如下：
@@ -457,3 +478,4 @@ self.play(
 
 + 添加其他的布局算法
     + 鱼骨图
+    + 组织结构图
