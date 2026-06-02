@@ -52,7 +52,7 @@ from manim_mindmap import *
     + ScaleNode：放缩思维导图中的节点
     + AlterNode：替换节点中的内容
 + 动画类的参数：
-    + NodeStyle：思维导图的布局参数类(节点的颜色、透明度，粗细等样式)
+    + NodeStyle：节点的颜色、透明度，粗细等样式
     + LayoutType：布局类型枚举类(思维导图、时序图等)
     + LayoutConfig：布局配置类(布局参数,如间距,布局方向)
 
