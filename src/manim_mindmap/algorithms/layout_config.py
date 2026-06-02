@@ -6,7 +6,7 @@ __all__ = [
 from enum import Enum
 from typing import List,Dict
 import numpy as np
-from manim.constants import LEFT, RIGHT, UP, DOWN
+from manim.constants import LEFT, RIGHT, UP, DOWN,PI
 
 class LayoutDirection(Enum):
     '''布局方向'''
@@ -17,9 +17,10 @@ class LayoutDirection(Enum):
 
 class LayoutType(Enum):
     '''布局算法'''
-    MindMap = 'tidy tree'
+    MindMap = 'tidytree'
     TimeLine = 'timeline'
     Standard = 'standard'
+    Catalog = 'catalog'
 
 class LayoutConfig:
     def __init__(
@@ -62,6 +63,24 @@ class LayoutConfig:
         elif np.array_equal(direction,RIGHT):
             string = LayoutDirection.LeftToRight
         return string
+    
+    @property
+    def catalog(self):
+        return {
+            'node_spacing':self.node_spacing,
+            'level_spacing':self.level_spacing,
+        }
+    
+    @catalog.setter
+    def catalog(
+        self,
+        catalog:Dict = {
+            'node_spacing':0.5,
+            'level_spacing':0.5,
+        }
+    ):
+        self.node_spacing = catalog.get('node_spacing',0.5)
+        self.level_spacing = catalog.get('level_spacing',0.5)
     
     @property
     def mindmap(self):

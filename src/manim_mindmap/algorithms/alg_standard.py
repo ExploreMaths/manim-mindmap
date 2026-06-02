@@ -3,7 +3,7 @@ __all__ = [
 ]
 from typing import List,Any
 from collections import deque
-from .tidy_tree import TidyTreeLayout
+from .alg_tidy_tree import TidyTreeLayout
 from .layout_config import LayoutDirection
 from .layout import Layout
 
@@ -97,7 +97,7 @@ class StandardLayout(Layout):
             case LayoutDirection.BottomToTop:
                 return LayoutDirection.TopToBottom
             
-    def split(self):
+    def _split(self):
         self.left = TreeNode(self.root.height, self.root.width)
         if (number := len(self.root.children)) > 0:
             m,n = split_integer(number)
@@ -113,7 +113,7 @@ class StandardLayout(Layout):
                     self.right.add_child(child)
 
     def layout(self):
-        self.split()
+        self._split()
         self.left = TidyTreeLayout(
             self.left,
             self.direction,
@@ -129,20 +129,18 @@ class StandardLayout(Layout):
             ).layout()
             x = self.left.x - self.right.x
             y = self.left.y - self.right.y
-            self.offset(self.right, x, y)
-        self.merge()
+            self._offset(self.right, x, y)
+            self._merge()
+        sync_copy_bfs(self.left, self.root)
         return self.root
     
-    def offset(self,node:Any, x:float, y:float):
+    def _offset(self,node:Any, x:float, y:float):
         node.x += x
         node.y += y
         node.is_flip = True
         for child in node.children:
-            self.offset(child,x,y)
+            self._offset(child,x,y)
 
-    def merge(self):
-        if self.right is not None:
-            for child in self.right.children:
-                
-                self.left.add_child(child)
-        sync_copy_bfs(self.left, self.root)
+    def _merge(self):
+        for child in self.right.children:
+            self.left.add_child(child) 

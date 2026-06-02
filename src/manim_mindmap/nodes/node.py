@@ -174,7 +174,7 @@ class Node:
             start,end = self.parent.surr_rect.get_right(),self.surr_rect.get_left()
         vec = np.dot(end - start,direction) * direction*0.5
         return Line(start,start+vec,**kwargs).add_line_to(end-vec).add_line_to(end)
-    
+        
     def _get_timeline_connector(self,**kwargs) -> Line:
         """获取时序图节点连接线"""
         if self.level == 1:
@@ -193,18 +193,33 @@ class Node:
         end = self.surr_rect.get_left()
         middle = np.array([start[0],end[1],0])
         return Line(start,middle,**kwargs).add_line_to(end)
+    
+    def _get_catalog_connector(self,**kwargs) -> Line:
+        """获取目录图节点连接线"""
+        start = self.parent.surr_rect.get_bottom()
+        if self.level == 1:
+            end = self.surr_rect.get_top()
+            vec = np.dot(end - start,DOWN) * DOWN*0.5
+            return Line(start,start+vec,**kwargs).add_line_to(end-vec).add_line_to(end)
+        start +=  0.25*self.parent.width*LEFT
+        end = self.surr_rect.get_left()
+        middle = np.array([start[0],end[1],0])
+        return Line(start,middle,**kwargs).add_line_to(end)
 
     def get_connector(self,layout_type,direction,**kwargs) -> Line:
         match layout_type:
             case LayoutType.MindMap:
                 return self._get_mindmap_connector(direction,**kwargs)
-            case LayoutType.TimeLine:
-                return self._get_timeline_connector(**kwargs)
             case LayoutType.Standard:
                 return self._get_mindmap_connector(
                     -direction if self.is_flip else direction,
                     **kwargs
                 )
+            case LayoutType.TimeLine:
+                return self._get_timeline_connector(**kwargs)
+            case LayoutType.Catalog:
+                return self._get_catalog_connector(**kwargs)
+            
     
     def set_connector(self,layout_type,direction = RIGHT,**kwargs):
         """设置连接线"""

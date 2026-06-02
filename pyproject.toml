@@ -1,6 +1,6 @@
 [project]
 name = "manim-mindmap"
-version = "0.1.2"
+version = "0.1.3"
 description = "A mind map plugin for manim"
 authors = [
     {name = "jj-math",email = "liwei.0028@163.com"}
