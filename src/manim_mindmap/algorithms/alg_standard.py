@@ -8,6 +8,7 @@ from .layout_config import LayoutDirection
 from .layout import Layout
 
 class TreeNode:
+    """StandardLayout 内部使用的树节点包装类"""
     __slots__ = ('height','width','children','parent','x','y','level','is_flip')
     def __init__(
         self,
@@ -24,6 +25,7 @@ class TreeNode:
         self.parent:'TreeNode' = None
 
     def add_child(self, child: 'TreeNode'):
+        """添加子节点并设置父子关系"""
         self.children.append(child)
         child.parent = self
 
@@ -73,6 +75,7 @@ def sync_copy_bfs(src: TreeNode, dst: Any):
             queue.append((s_child, d_child))
 
 class StandardLayout(Layout):
+    """两侧布局的思维导图布局算法:将子节点分成左右(或上下)两侧分别布局"""
     def __init__(
         self,
         root:Any,
@@ -87,6 +90,7 @@ class StandardLayout(Layout):
         self.level_spacing = level_spacing
 
     def _flip_direction(self, direction: LayoutDirection) -> LayoutDirection:
+        """返回给定方向的反方向"""
         match direction:
             case LayoutDirection.LeftToRight:
                 return LayoutDirection.RightToLeft
@@ -98,6 +102,7 @@ class StandardLayout(Layout):
                 return LayoutDirection.TopToBottom
             
     def _split(self):
+        """将根节点的子节点分成左右(或上下)两部分"""
         self.left = TreeNode(self.root.height, self.root.width)
         if (number := len(self.root.children)) > 0:
             m,n = split_integer(number)
@@ -113,6 +118,7 @@ class StandardLayout(Layout):
                     self.right.add_child(child)
 
     def layout(self):
+        """执行两侧布局计算并返回原始根节点"""
         self._split()
         self.left = TidyTreeLayout(
             self.left,
@@ -135,6 +141,7 @@ class StandardLayout(Layout):
         return self.root
     
     def _offset(self,node:Any, x:float, y:float):
+        """平移右侧(或下侧)子树并标记为翻转"""
         node.x += x
         node.y += y
         node.is_flip = True
@@ -142,5 +149,6 @@ class StandardLayout(Layout):
             self._offset(child,x,y)
 
     def _merge(self):
+        """将右侧(或下侧)子树合并到左侧树中"""
         for child in self.right.children:
             self.left.add_child(child) 

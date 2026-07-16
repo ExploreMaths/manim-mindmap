@@ -72,16 +72,19 @@ class NodeStyle:
             self.text_num = 1
 
     def get_node_style(self,level:int) -> Dict:
+        """获取指定层级的节点样式"""
         if level < self.node_num:
             return self.node_style[level]
         return self.node_style[-1]
     
     def get_line_style(self,level:int) -> Dict:
+        """获取指定层级的连线样式"""
         if level < self.line_num:
             return self.line_style[level]
         return self.line_style[-1]
     
     def get_text_style(self,level:int) -> Dict:
+        """获取指定层级的文本样式"""
         if level < self.text_num:
             return self.text_style[level]
         return self.text_style[-1]
@@ -207,6 +210,7 @@ class Node:
         return Line(start,middle,**kwargs).add_line_to(end)
 
     def get_connector(self,layout_type,direction,**kwargs) -> Line:
+        """根据布局类型获取当前节点到父节点的连接线"""
         match layout_type:
             case LayoutType.MindMap:
                 return self._get_mindmap_connector(direction,**kwargs)
@@ -254,6 +258,7 @@ class Node:
             )
 
     def get_node_and_line_without_updater(self) -> Group:
+        """获取节点及其连接线对象,并移除连接线的 updater"""
         node_mobj = Group(self.surr_rect,self.vmobject)
         if hasattr(self,'connector'):
             self.connector.remove_updater(*self.connector.get_updaters())

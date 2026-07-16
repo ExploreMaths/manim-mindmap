@@ -241,6 +241,7 @@ def animate_of_layout(
     return anims
     
 class AbstractLayoutAnimation(AnimationGroup):
+    """布局动画的抽象基类: 收集节点状态并生成完整布局动画"""
     def __init__(
         self,
         scene:Scene,
@@ -323,6 +324,7 @@ class AbstractLayoutAnimation(AnimationGroup):
         return root
     
 class LayoutAnimation(AbstractLayoutAnimation):
+    """通用布局动画: 对整棵树应用布局并播放所有变化动画"""
     def __init__(
         self,
         scene:Scene,
@@ -402,6 +404,7 @@ class RemoveNode(LayoutAnimation):
         return group
 
 class InsertNode(LayoutAnimation):
+    """向思维导图中插入一个或多个子节点"""
     def __init__(
         self,
         scene:Scene,
@@ -445,6 +448,7 @@ class InsertNode(LayoutAnimation):
         return super().collect_animations()
     
 class ScaleNode(LayoutAnimation):
+    """放缩思维导图中一个或多个节点"""
     def __init__(
         self,
         scene:Scene,
@@ -473,6 +477,7 @@ class ScaleNode(LayoutAnimation):
         )
 
 class AlterNode(LayoutAnimation):
+    """替换思维导图中节点内容"""
     def __init__(
         self,
         scene:Scene,

@@ -53,6 +53,7 @@ class LayoutConfig:
         self.direction = direction
 
     def get_layout_direction(self,direction:np.ndarray) -> LayoutDirection:
+        """将方向向量转换为 LayoutDirection 枚举"""
         string = None
         if np.array_equal(direction,UP):
             string = LayoutDirection.BottomToTop

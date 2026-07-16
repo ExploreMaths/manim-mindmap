@@ -19,6 +19,7 @@ from ..nodes import Node,NodeStyle,bfs_walker,dfs_walker
 from ..algorithms import Layout
 
 class NodeMobject:
+    """思维导图节点的组成部分包装类"""
     __slots__ = ['vmobject','surr_rect','connector','text']
     def __init__(
         self,
@@ -93,27 +94,32 @@ class AbstractMap(Group):
         raise NotImplementedError
         
     def get_node_component(self,ID) -> NodeMobject:
+        """获取指定 ID 节点的完整组成对象"""
         return self.node_data_dict.get(ID,None)
 
     def get_node(self,ID) -> Group:
+        """获取指定 ID 节点的 VMobject 和边框"""
         node = self.node_data_dict.get(ID,None)
         if node is not None:
             return Group(node.vmobject,node.surr_rect)
         return None
 
     def get_text(self,ID) -> str:
+        """获取指定 ID 节点的讲解文本"""
         node = self.node_data_dict.get(ID,None)
         if node is not None:
             return node.text
         return None
     
     def get_connector(self,ID) -> Line:
+        """获取指定 ID 节点的连接线"""
         node = self.node_data_dict.get(ID,None)
         if node is not None:
             return node.connector
         return None
     
     def get_all_mindmap(self) -> Group:
+        """获取思维导图中所有节点和连线对象"""
         all_mobjects = Group()
         for node in self.node_data_dict.values():
             if node.connector is not None:
@@ -138,12 +144,14 @@ class AbstractMap(Group):
             yield self.node_data_dict.get(id,None)
 
     def _get_origin_node(self,ID) -> Node:
+        """根据 ID 在原始树中查找节点"""
         for node in dfs_walker(self.root):
             if node.ID == ID:
                 return node
         return None
     
     def _get_connector_style(self,level:int) -> dict:
+        """获取指定层级的连线样式"""
         return self.node_style.get_line_style(level=level)
 
     def get_children(self,ID) -> Group:

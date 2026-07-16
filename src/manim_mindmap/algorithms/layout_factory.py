@@ -15,6 +15,7 @@ class LayoutFactory:
         root,
         layout_config:LayoutConfig
     ):
+        """根据布局类型创建对应的布局算法实例"""
         match layout_type:
             case LayoutType.MindMap:
                 kwargs = layout_config.mindmap
